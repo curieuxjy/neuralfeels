@@ -5,7 +5,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-usage="$(basename "$0") [-h] [-e ENV_NAME] -- Install the neuralfeels environment
+usage="$(basename "$0") [-h] [-e ENV_NAME] [-f INSTALL_FAIROTAG] --
+Install the neuralfeels environment
 where:
     -h  show this help text
     -e  name of the environment, default=_neuralfeels
@@ -100,4 +101,3 @@ pip install -e .
 
 # Make scripts executable
 chmod +x scripts/run
-
