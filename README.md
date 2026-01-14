@@ -59,8 +59,81 @@ Our preferred choice is via `micromamba` ([link](https://mamba.readthedocs.io/en
 
 ```bash
 ./install.sh -e neuralfeels
-micromamba activate neuralfeels  
+micromamba activate neuralfeels
 ```
+
+<details>
+<summary><b>Alternative: Installation for RTX 5090 / Blackwell GPUs (CUDA 12.x)</b></summary>
+
+The default installation uses CUDA 11.8, which is not compatible with RTX 5090 (Blackwell architecture, sm_120). Use the following steps for newer GPUs:
+
+#### Step 1: Create conda environment
+
+```bash
+# Fix environment.yml typo if needed (pre-commit-4.0.1 -> pre-commit==4.0.1)
+sed -i 's/pre-commit-4.0.1/pre-commit==4.0.1/' environment.yml
+
+# Create environment
+conda env create --name neuralfeels --file environment.yml
+conda activate neuralfeels
+```
+
+#### Step 2: Install PyTorch with CUDA 12.x
+
+```bash
+pip uninstall torch torchvision -y
+pip install torch torchvision
+```
+
+#### Step 3: Install CUDA toolkit 12.x
+
+```bash
+conda install -c "nvidia/label/cuda-12.4.0" cuda-toolkit -y
+```
+
+#### Step 4: Verify CUDA setup
+
+```bash
+python -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.version.cuda)"
+nvcc --version
+```
+
+#### Step 5: Install tinycudann for Blackwell GPUs
+
+```bash
+TCNN_CUDA_ARCHITECTURES=120 pip install --no-build-isolation \
+    git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+```
+
+#### Step 6: Install remaining dependencies
+
+```bash
+# segment-anything and tacto
+pip install git+https://github.com/facebookresearch/segment-anything.git \
+    git+https://github.com/suddhu/tacto.git@master
+
+# theseus-ai
+conda install -y suitesparse
+pip install theseus-ai
+
+# neuralfeels package
+pip install -e .
+chmod +x scripts/run
+```
+
+#### Verify installation
+
+```bash
+python -c "
+import torch, tinycudann, theseus, segment_anything, tacto, neuralfeels
+print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')
+print('All packages installed successfully!')
+"
+```
+
+> **Note**: tinycudann may show a warning about compute capability mismatch (built for sm_90 but running on sm_120). This is expected and the package will still function correctly, though with potentially suboptimal performance.
+
+</details>
 
 ### 3. Download the FeelSight dataset
 
@@ -124,7 +197,7 @@ Presets:
   --occlusion-sim    # Run neural tracking in simulation with occlusion logs
 ```
 
-This will launch the GUI and train the neural field model live. You must have a performant GPU (tested on RTX 3090/4090) for best results. In our work, we've experimented with an FPS of 1-5Hz, optimizing the performance is future work. See below for the interactive visualization of sensor measurements, mesh, SDF, and neural field.
+This will launch the GUI and train the neural field model live. You must have a performant GPU (tested on RTX 3090/4090/5090) for best results. In our work, we've experimented with an FPS of 1-5Hz, optimizing the performance is future work. See below for the interactive visualization of sensor measurements, mesh, SDF, and neural field.
 
 https://github.com/user-attachments/assets/63fc2992-d86e-4f69-8fc9-77ede86942c7
 
