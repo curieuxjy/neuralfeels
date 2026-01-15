@@ -65,9 +65,6 @@ The RTX 5090 uses Blackwell architecture (sm_120) which requires CUDA 12.x. Foll
 **Step 1: Create conda environment**
 
 ```bash
-# Fix environment.yml syntax issue
-sed -i 's/pre-commit-4.0.1/pre-commit==4.0.1/' environment.yml
-
 # Create environment
 conda env create --name neuralfeels --file environment.yml
 conda activate neuralfeels
