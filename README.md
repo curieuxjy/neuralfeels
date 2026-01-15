@@ -1,3 +1,5 @@
+<!-- Edited by Jungyeon Lee -->
+
 <h1 align="center"><img src=".github/logo.svg"
     width=30px>
       NeuralFeels with neural fields <br/>
@@ -51,26 +53,19 @@ NeuralFeels combines vision, touch, and robot proprioception into a neural field
 
 ```bash
 git clone git@github.com:facebookresearch/neuralfeels.git
+cd neuralfeels
 ```
 
 ### 2. Install the `neuralfeels` environment
 
-Our preferred choice is via `micromamba` ([link](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html)). Run the bash script that sets everything up:
+#### For RTX 5090 / Blackwell GPUs (CUDA 12.x) - Recommended
+
+The RTX 5090 uses Blackwell architecture (sm_120) which requires CUDA 12.x. Follow these steps:
+
+**Step 1: Create conda environment**
 
 ```bash
-./install.sh -e neuralfeels
-micromamba activate neuralfeels
-```
-
-<details>
-<summary><b>Alternative: Installation for RTX 5090 / Blackwell GPUs (CUDA 12.x)</b></summary>
-
-The default installation uses CUDA 11.8, which is not compatible with RTX 5090 (Blackwell architecture, sm_120). Use the following steps for newer GPUs:
-
-#### Step 1: Create conda environment
-
-```bash
-# Fix environment.yml typo if needed (pre-commit-4.0.1 -> pre-commit==4.0.1)
+# Fix environment.yml syntax issue
 sed -i 's/pre-commit-4.0.1/pre-commit==4.0.1/' environment.yml
 
 # Create environment
@@ -78,34 +73,34 @@ conda env create --name neuralfeels --file environment.yml
 conda activate neuralfeels
 ```
 
-#### Step 2: Install PyTorch with CUDA 12.x
+**Step 2: Install PyTorch with CUDA 12.x**
 
 ```bash
 pip uninstall torch torchvision -y
 pip install torch torchvision
 ```
 
-#### Step 3: Install CUDA toolkit 12.x
+**Step 3: Install CUDA toolkit 12.x**
 
 ```bash
 conda install -c "nvidia/label/cuda-12.4.0" cuda-toolkit -y
 ```
 
-#### Step 4: Verify CUDA setup
+**Step 4: Verify CUDA setup**
 
 ```bash
 python -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.version.cuda)"
 nvcc --version
 ```
 
-#### Step 5: Install tinycudann for Blackwell GPUs
+**Step 5: Install tinycudann for Blackwell GPUs**
 
 ```bash
 TCNN_CUDA_ARCHITECTURES=120 pip install --no-build-isolation \
     git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
 ```
 
-#### Step 6: Install remaining dependencies
+**Step 6: Install remaining dependencies**
 
 ```bash
 # segment-anything and tacto
@@ -116,12 +111,15 @@ pip install git+https://github.com/facebookresearch/segment-anything.git \
 conda install -y suitesparse
 pip install theseus-ai
 
+# viser (for object mesh viewer)
+pip install viser
+
 # neuralfeels package
 pip install -e .
 chmod +x scripts/run
 ```
 
-#### Verify installation
+**Step 7: Verify installation**
 
 ```bash
 python -c "
@@ -132,6 +130,16 @@ print('All packages installed successfully!')
 ```
 
 > **Note**: tinycudann may show a warning about compute capability mismatch (built for sm_90 but running on sm_120). This is expected and the package will still function correctly, though with potentially suboptimal performance.
+
+<details>
+<summary><b>Alternative: Installation for RTX 3090/4090 (CUDA 11.8)</b></summary>
+
+For older GPUs with CUDA 11.8 support, use micromamba ([link](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html)):
+
+```bash
+./install.sh -e neuralfeels
+micromamba activate neuralfeels
+```
 
 </details>
 
@@ -197,19 +205,74 @@ Presets:
   --occlusion-sim    # Run neural tracking in simulation with occlusion logs
 ```
 
-This will launch the GUI and train the neural field model live. You must have a performant GPU (tested on RTX 3090/4090/5090) for best results. In our work, we've experimented with an FPS of 1-5Hz, optimizing the performance is future work. See below for the interactive visualization of sensor measurements, mesh, SDF, and neural field.
+This will launch the GUI and train the neural field model live. You must have a performant GPU (tested on RTX 5090/4090/3090) for best results. In our work, we've experimented with an FPS of 1-5Hz, optimizing the performance is future work. See below for the interactive visualization of sensor measurements, mesh, SDF, and neural field.
 
 https://github.com/user-attachments/assets/63fc2992-d86e-4f69-8fc9-77ede86942c7
 
-## Other scripts 
+## Module Tests
 
-Here are some additional scripts to test different modules of NeuralFeels:
-| Task                                | Command                                                       |
-|-------------------------------------|---------------------------------------------------------------|
-| Test the tactile-transformer model  | ```python neuralfeels/contrib/tactile_transformer/touch_vit.py ``` |
-| Test prompt-based visual segmentation      | ```python neuralfeels/contrib/sam/test_sam.py ```         |
-| Allegro URDF visualization in Open3D| ```python /neuralfeels/contrib/urdf/viz.py ```            |
-| Show FeelSight object meshes in [`viser`](https://github.com/nerfstudio-project/viser)   | ```python neuralfeels/viz/show_object_dataset.py ```      |
+Here are additional scripts to test different modules of NeuralFeels. Make sure to activate the environment first:
+
+```bash
+conda activate neuralfeels
+```
+
+| Task | Command | Notes |
+|------|---------|-------|
+| SAM visual segmentation | `python neuralfeels/contrib/sam/test_sam.py` | Tests prompt-based segmentation |
+| Allegro hand URDF | `python neuralfeels/contrib/urdf/viz.py` | Visualizes robot hand in Open3D |
+| Object mesh viewer | `python neuralfeels/viz/show_object_dataset.py` | Opens web viewer at http://localhost:8080 |
+| Tactile transformer | `python neuralfeels/contrib/tactile_transformer/touch_vit.py` | Requires tacto_data (see below) |
+
+### Tactile Transformer Data (Optional)
+
+To run the tactile transformer example, download the YCB tactile data:
+
+```bash
+cd data
+gdown https://drive.google.com/drive/folders/1a-8vfMCkW52BpWOPfqk5WM5zsSjBfhN1?usp=sharing --folder
+mv sim tacto_data
+cd tacto_data && unzip -q '*.zip' && rm *.zip
+cd ../..
+```
+
+Then run:
+```bash
+python neuralfeels/contrib/tactile_transformer/touch_vit.py
+```
+
+### Running the Main Experiments
+
+Use the preset commands for quick testing:
+
+```bash
+# Simulation experiments
+./scripts/run --slam-sim         # SLAM with rubber duck (mapping + tracking)
+./scripts/run --pose-sim         # Pose tracking with Rubik's cube (fixed map)
+./scripts/run --occlusion-sim    # Occlusion robustness test
+
+# Real-world experiments
+./scripts/run --slam-real        # SLAM with bell pepper
+./scripts/run --pose-real        # Pose tracking with large dice
+./scripts/run --three-cam        # Three camera baseline
+```
+
+Or use manual mode with full control:
+
+```bash
+# Format: ./scripts/run DATASET SLAM_MODE MODALITY OBJECT LOG FPS RECORD OPEN3D
+./scripts/run feelsight slam vitac 077_rubiks_cube 00 1 1 1
+./scripts/run feelsight_real pose vitac bell_pepper 00 5 0 0
+```
+
+| Parameter | Options | Description |
+|-----------|---------|-------------|
+| DATASET | `feelsight`, `feelsight_real` | Simulation or real-world data |
+| SLAM_MODE | `slam`, `pose`, `map` | Full SLAM, pose-only, or map-only |
+| MODALITY | `vitac`, `vi`, `tac` | Vision+touch, vision-only, touch-only |
+| FPS | `1`, `5`, etc. | Training frames per second |
+| RECORD | `0`, `1` | Disable/enable recording |
+| OPEN3D | `0`, `1` | Disable/enable visualization |
 
 ## Folder structure
 ```bash
